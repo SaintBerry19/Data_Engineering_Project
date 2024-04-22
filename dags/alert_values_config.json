@@ -1,0 +1,15 @@
+{
+    "symbols": ["btc", "eth", "usdt", "bnb", "sol", "usdc", "xrp", "steth", "doge", "ton"],
+    "thresholds": {
+        "btc": {"min": -0.10, "max": 0.10},
+        "eth": {"min": -0.10, "max": 0.10},
+        "usdt": {"min": -0.10, "max": 0.10},
+        "bnb": {"min": -0.10, "max": 0.10},
+        "sol": {"min": -0.10, "max": 0.10},
+        "usdc": {"min": -0.10, "max": 0.10},
+        "xrp": {"min": -0.10, "max": 0.10},
+        "steth": {"min": -0.10, "max": 0.10},
+        "doge": {"min": -0.10, "max": 0.10},
+        "ton": {"min": -0.10, "max": 0.10}
+    }
+}

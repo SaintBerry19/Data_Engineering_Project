@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 from datetime import date
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+import json
 
 
 # Función para cargar las variables de entorno y construir la cadena de conexión
@@ -159,3 +162,61 @@ def query_data():
             results = cursor.fetchall()
             colnames = [desc[0] for desc in cursor.description]
             return pd.DataFrame(results, columns=colnames)
+         
+# Función para cargar los umbrales de alerta desde el archivo JSON
+def load_alert_thresholds():
+    with open('./alert_values_config.json', 'r') as json_file:
+        alert_values = json.load(json_file)
+    return alert_values['thresholds']
+
+# Función para enviar correos electrónicos
+def send_email(subject, body):
+    # Carga las configuraciones de email
+    from_email = os.getenv('EMAIL_FROM')
+    to_email = os.getenv('EMAIL_TO')
+    sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+
+    # Configura el mensaje de email utilizando SendGrid
+    message = Mail(
+        from_email=from_email,
+        to_emails=to_email,
+        subject=subject,
+        html_content=body
+    )
+    
+    # Inicia la instancia de SendGrid y envía el email
+    try:
+        sg = SendGridAPIClient(sendgrid_api_key)
+        response = sg.send(message)
+        print(f"Email sent! Status code: {response.status_code}")
+    except Exception as e:
+        print(e)
+
+# Función para verificar los umbrales y enviar alertas
+def verify_thresholds_and_alert():
+    df = query_data()
+    thresholds = load_alert_thresholds()
+
+    for index, row in df.iterrows():
+        symbol = row['symbol']
+        price_change_percentage_24h = row['price_change_percentage_24h']
+        min_t = thresholds[symbol]["min"]
+        max_t = thresholds[symbol]["max"]
+
+        if price_change_percentage_24h < min_t or price_change_percentage_24h > max_t:
+            if price_change_percentage_24h < min_t:
+                subject = f"Alert: {symbol} below threshold"
+                condition = "below"
+            else:
+                subject = f"Alert: {symbol} above threshold"
+                condition = "above"
+
+            body = f"""
+                <p>The 24h price change percentage for {symbol} is {price_change_percentage_24h}%, 
+                which is {condition} the set thresholds of {min_t}% minimum and {max_t}% maximum.</p>
+            """
+            send_email(subject, body)
+            print(f"Alert sent for {symbol}. Condition: {condition}. Price change percentage: {price_change_percentage_24h}%")
+
+    print("Threshold verification and alerting complete.")
+
